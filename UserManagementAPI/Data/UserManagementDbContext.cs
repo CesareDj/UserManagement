@@ -1,45 +1,61 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using UserManagementAPI.Models;
 
-public class UserManagementDbContext : DbContext
+namespace UserManagementAPI.Data
 {
-    public UserManagementDbContext(DbContextOptions<UserManagementDbContext> options)
-        : base(options)
+    public class UserManagementDbContext : DbContext
     {
-    }
-
-    public DbSet<Country> Countries { get; set; }
-    public DbSet<Company> Companies { get; set; }
-    public DbSet<User> Users { get; set; }
-
-    public override int SaveChanges()
-    {
-        var currentTime = DateTime.Now;
-
-        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added))
+        public UserManagementDbContext(DbContextOptions<UserManagementDbContext> options) : base(options)
         {
-            if (entry.Entity is BaseEntity entity)
+        }
+
+        public UserManagementDbContext()
+        {
+        }
+
+        public DbSet<Country> Countries { get; set; } = null!;
+        public DbSet<Company> Companies { get; set; } = null!;
+        public DbSet<User> Users { get; set; } = null!;
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
             {
-                entity.CreatedAt = currentTime;
+                optionsBuilder.UseSqlite("Data Source=UserManagement.db");
             }
         }
 
-        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Modified))
+        public override int SaveChanges()
         {
-            if (entry.Entity is BaseEntity entity)
+            DateTime currentTime = DateTime.Now;
+
+            foreach (EntityEntry entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added))
             {
-                entity.UpdatedAt = currentTime;
+                if (entry.Entity is BaseEntity entity)
+                {
+                    entity.CreatedAt = currentTime;
+                    entity.CreatedBy = "System";
+                }
             }
-        }
 
-        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Deleted && e.Metadata.GetProperties().Any(x => x.Name == "DeletedAt")))
-        {
-            entry.State = EntityState.Unchanged;
-            entry.CurrentValues["DeletedAt"] = currentTime;
-        }
+            foreach (EntityEntry entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Modified))
+            {
+                if (entry.Entity is BaseEntity entity)
+                {
+                    entity.UpdatedAt = currentTime;
+                    entity.UpdatedBy = "System";
+                }
+            }
 
-        return base.SaveChanges();
+            foreach (EntityEntry entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Deleted && e.Metadata.GetProperties().Any(x => x.Name == "DeletedAt")))
+            {
+                entry.State = EntityState.Unchanged;
+                entry.CurrentValues["DeletedAt"] = currentTime;
+                entry.CurrentValues["DeletedBy"] = "System";
+            }
+
+            return base.SaveChanges();
+        }
     }
 }
