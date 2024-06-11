@@ -18,22 +18,33 @@ namespace UserManagementAPI.Services
             return _context.Companies.FindAsync(id).AsTask();
         }
 
-        public async Task<Company> CreateCompanyAsync(Company company)
+        public async Task<Company> CreateCompanyAsync(Company? company)
         {
-            _context.Companies.Add(company);
+            ArgumentNullException.ThrowIfNull(company);
+
+            _context.Companies.Add(company!);
             await _context.SaveChangesAsync();
 
             return company;
         }
 
-        public async Task<Company?> UpdateCompanyAsync(Company company)
+        public async Task<Company?> UpdateCompanyAsync(Company? company)
         {
-            if (company == null || company.Id <= 0)
+            ArgumentNullException.ThrowIfNull(company);
+
+            if (company.Id <= 0)
             {
-                throw new ArgumentException("Company is null or Company ID is not valid.");
+                throw new ArgumentException("Company ID is not valid.");
             }
 
-            _context.Entry(company).State = EntityState.Modified;
+            Company? existingCompany = await _context.Companies.FindAsync(company.Id) ?? throw new ArgumentException($"No company with ID {company.Id} exists.");
+
+            if (string.IsNullOrEmpty(company.Name) || existingCompany.Name == company.Name)
+            {
+                throw new ArgumentException("New name is invalid.");
+            }
+
+            existingCompany.Name = company.Name;
 
             try
             {
@@ -41,9 +52,9 @@ namespace UserManagementAPI.Services
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!CompanyExists(company.Id))
+                if (!_context.Companies.Any(e => e.Id == company.Id))
                 {
-                    return null;
+                    throw new ArgumentException($"No company with ID {company.Id} exists.");
                 }
                 else
                 {
@@ -51,27 +62,18 @@ namespace UserManagementAPI.Services
                 }
             }
 
-            return company;
+            return existingCompany;
         }
 
         public async Task<Company?> DeleteCompanyAsync(int id)
         {
-            Company company = await _context.Companies.FindAsync(id);
+            Company? company = await _context.Companies.FindAsync(id);
+            ArgumentNullException.ThrowIfNull(company, $"No company with ID {id} exists.");
 
-            if (company == null)
-            {
-                return null;
-            }
-
-            _context.Companies.Remove(company);
+            _context.Companies.Remove(company!);
             await _context.SaveChangesAsync();
 
             return company;
-        }
-
-        private bool CompanyExists(int id)
-        {
-            return _context.Companies.Any(e => e.Id == id);
         }
     }
 }

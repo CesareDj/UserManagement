@@ -14,9 +14,9 @@ namespace UserManagementAPI.Data
         {
         }
 
-        public DbSet<Country> Countries { get; set; } = null!;
-        public DbSet<Company> Companies { get; set; } = null!;
-        public DbSet<User> Users { get; set; } = null!;
+        public virtual DbSet<Country> Countries { get; set; } = null!;
+        public virtual DbSet<Company> Companies { get; set; } = null!;
+        public virtual DbSet<User> Users { get; set; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
