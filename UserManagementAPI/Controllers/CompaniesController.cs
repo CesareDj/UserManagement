@@ -3,27 +3,33 @@ using UserManagementAPI.Data;
 using UserManagementAPI.Models;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using UserManagementAPI.Services;
 
 namespace UserManagementAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class CompaniesController(UserManagementDbContext context) : ControllerBase
+    public class CompaniesController : ControllerBase
     {
-        private readonly UserManagementDbContext _context = context;
+        private readonly ICompanyService _companyService;
+
+        public CompaniesController(ICompanyService companyService)
+        {
+            _companyService = companyService;
+        }
 
         // GET: api/Companies
         [HttpGet]
         public Task<List<Company>> GetCompaniesAsync()
         {
-            return _context.Companies.ToListAsync();
+            return _companyService.GetCompaniesAsync();
         }
 
         // GET: api/Companies/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Company>> GetCompanyAsync(int id)
         {
-            Company? company = await _context.Companies.FindAsync(id);
+            var company = await _companyService.GetCompanyAsync(id);
 
             if (company == null)
             {
@@ -37,23 +43,21 @@ namespace UserManagementAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Company>> PostCompanyAsync(Company company)
         {
-            _context.Companies.Add(company);
-            await _context.SaveChangesAsync();
+            var createdCompany = await _companyService.CreateCompanyAsync(company);
 
-            return CreatedAtAction(nameof(GetCompanyAsync), new { id = company.Id }, company);
+            return CreatedAtAction(nameof(GetCompanyAsync), new { id = createdCompany.Id }, createdCompany);
         }
 
         // PUT: api/Companies/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCompanyAsync(int id, Company company)
         {
-            if (id != company.Id)
+            var updatedCompany = await _companyService.UpdateCompanyAsync(id, company);
+
+            if (updatedCompany == null)
             {
                 return BadRequest();
             }
-
-            _context.Entry(company).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -62,15 +66,12 @@ namespace UserManagementAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCompanyAsync(int id)
         {
-            Company? company = await _context.Companies.FindAsync(id);
+            var company = await _companyService.DeleteCompanyAsync(id);
 
             if (company == null)
             {
                 return NotFound();
             }
-
-            _context.Companies.Remove(company);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }

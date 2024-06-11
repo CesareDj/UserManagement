@@ -1,28 +1,35 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserManagementAPI.Data;
+using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
+using UserManagementAPI.Services;
 
 namespace UserManagementAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class UsersController(UserManagementDbContext context) : ControllerBase
+    public class UsersController : ControllerBase
     {
-        private readonly UserManagementDbContext _context = context;
+        private readonly IUserService _userService;
+
+        public UsersController(IUserService userService)
+        {
+            _userService = userService;
+        }
 
         // GET: api/Users
         [HttpGet]
         public Task<List<User>> GetUsersAsync()
         {
-            return _context.Users.ToListAsync();
+            return _userService.GetUsersAsync();
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUserAsync(int id)
         {
-            User? user = await _context.Users.FindAsync(id);
+            var user = await _userService.GetUserAsync(id);
 
             if (user == null)
             {
@@ -34,10 +41,9 @@ namespace UserManagementAPI.Controllers
 
         // POST: api/Users
         [HttpPost]
-        public async Task<ActionResult<User>> PostUserAsync(User user)
+        public async Task<ActionResult<User>> PostUserAsync(UserDto userDto)
         {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            var user = await _userService.CreateUserAsync(userDto);
 
             return CreatedAtAction(nameof(GetUserAsync), new { id = user.Id }, user);
         }
@@ -46,13 +52,12 @@ namespace UserManagementAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUserAsync(int id, User user)
         {
-            if (id != user.Id)
+            var updatedUser = await _userService.UpdateUserAsync(id, user);
+
+            if (updatedUser == null)
             {
                 return BadRequest();
             }
-
-            _context.Entry(user).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -61,15 +66,12 @@ namespace UserManagementAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUserAsync(int id)
         {
-            User? user = await _context.Users.FindAsync(id);
+            var user = await _userService.DeleteUserAsync(id);
 
             if (user == null)
             {
                 return NotFound();
             }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
