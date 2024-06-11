@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Moq;
+using Moq.EntityFrameworkCore;
 using UserManagementAPI.Data;
 using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
@@ -43,9 +44,8 @@ namespace UserManagementAPITest
             // Arrange
             var user1 = new User { Id = 1 };
             var user2 = new User { Id = 2 };
-            _contextMock.Object.Users.Add(user1);
-            _contextMock.Object.Users.Add(user2);
-            await _contextMock.Object.SaveChangesAsync();
+
+            _contextMock.Setup(x => x.Users).ReturnsDbSet([user1, user2]);
 
             // Act
             var result = await _userService.GetUsersAsync();
@@ -103,9 +103,8 @@ namespace UserManagementAPITest
             var country = new Country { Name = "Country" };
             var company = new Company { Name = "Company" };
 
-            _contextMock.Object.Countries.Add(country);
-            _contextMock.Object.Companies.Add(company);
-            await _contextMock.Object.SaveChangesAsync();
+            _contextMock.Setup(x => x.Countries).ReturnsDbSet(new List<Country> { country });
+            _contextMock.Setup(x => x.Companies).ReturnsDbSet(new List<Company> { company });
 
             var userDto = new UserDto { Id = 1, Email = "test@test.com", First = "First", Last = "Last", Company = company.Name, Country = country.Name };
 
@@ -173,30 +172,31 @@ namespace UserManagementAPITest
         }
 
         [Fact]
-        public async Task UpdateUserAsync_ReturnsNull_WhenIdDoesNotMatch()
+        public async Task UpdateUserAsync_ThrowsException_WhenIdDoesNotMatch()
         {
             // Arrange
             var user = new User { Id = 1 };
 
-            // Act
-            var result = await _userService.UpdateUserAsync(2, user);
-
-            // Assert
-            Assert.Null(result);
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(2, user));
         }
 
         [Fact]
         public async Task UpdateUserAsync_UpdatesUser_WhenIdMatches()
         {
             // Arrange
-            var user = new User { Id = 1, Email = "test@test.com", First = "First", Last = "Last" };
-            _contextMock.Object.Users.Add(user);
-            await _contextMock.Object.SaveChangesAsync();
+            var country = new Country { Id = 1, Name = "Country" };
+            var company = new Company { Id = 1, Name = "Company" };
+            var user = new User { Id = 1, Email = "test@test.com", First = "First", Last = "Last", CountryId = country.Id, CompanyId = company.Id };
 
-            user.Email = "updated@test.com";
+            _contextMock.Setup(x => x.Users.FindAsync(1)).ReturnsAsync(user);
+            _contextMock.Setup(x => x.Countries.FindAsync(country.Id)).ReturnsAsync(country);
+            _contextMock.Setup(x => x.Companies.FindAsync(company.Id)).ReturnsAsync(company);
+
+            var updatedUser = new User { Id = 1, Email = "updated@test.com", First = "First", Last = "Last", CountryId = country.Id, CompanyId = company.Id };
 
             // Act
-            var result = await _userService.UpdateUserAsync(1, user);
+            var result = await _userService.UpdateUserAsync(1, updatedUser);
 
             // Assert
             Assert.NotNull(result);

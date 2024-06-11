@@ -79,15 +79,31 @@ namespace UserManagementAPI.Services
 
         public async Task<User?> UpdateUserAsync(int id, User user)
         {
+            ArgumentNullException.ThrowIfNull(user);
+
             if (id != user.Id)
             {
-                return null;
+                throw new ArgumentException("Id does not match.");
             }
 
-            _context.Entry(user).State = EntityState.Modified;
+            var existingUser = await _context.Users.FindAsync(id) ?? throw new ArgumentException("User does not exist.");
+            var country = await _context.Countries.FindAsync(user.CountryId);
+            var company = await _context.Companies.FindAsync(user.CompanyId);
+
+            if (country == null || company == null)
+            {
+                throw new ArgumentException("Country or Company does not exist.");
+            }
+
+            existingUser.Email = user.Email;
+            existingUser.First = user.First;
+            existingUser.Last = user.Last;
+            existingUser.CountryId = country.Id;
+            existingUser.CompanyId = company.Id;
+
             await _context.SaveChangesAsync();
 
-            return user;
+            return existingUser;
         }
 
         public async Task<User?> DeleteUserAsync(int id)
