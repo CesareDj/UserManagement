@@ -21,21 +21,24 @@ namespace UserManagementAPI.Services
 
         public async Task<User> CreateUserAsync(UserDto userDto)
         {
-            Country country = _context.Countries.FirstOrDefault(c => c.Name == userDto.Country)
-                              ?? _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
+            ArgumentNullException.ThrowIfNull(userDto);
 
-            Company company = _context.Companies.FirstOrDefault(c => c.Name == userDto.Company)
-                               ?? _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
+            var country = await _context.Countries.FirstOrDefaultAsync(c => c.Name == userDto.Country);
+            var company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
 
-            User user = new()
+            if (country == null || company == null)
+            {
+                throw new ArgumentException("Country or Company does not exist.");
+            }
+
+            var user = new User
             {
                 Id = userDto.Id,
                 Email = userDto.Email,
                 First = userDto.First,
                 Last = userDto.Last,
-                CompanyId = company.Id,
-                CreatedAt = userDto.CreatedAt ?? DateTime.UtcNow,
-                CountryId = country.Id
+                CountryId = country.Id,
+                CompanyId = company.Id
             };
 
             _context.Users.Add(user);
