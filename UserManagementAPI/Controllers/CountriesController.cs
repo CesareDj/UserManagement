@@ -2,27 +2,33 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserManagementAPI.Data;
 using UserManagementAPI.Models;
+using UserManagementAPI.Services;
 
 namespace UserManagementAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class CountriesController(UserManagementDbContext context) : ControllerBase
+    public class CountriesController : ControllerBase
     {
-        private readonly UserManagementDbContext _context = context;
+        private readonly ICountryService _countryService;
+
+        public CountriesController(ICountryService countryService)
+        {
+            _countryService = countryService;
+        }
 
         // GET: api/Countries
         [HttpGet]
         public Task<List<Country>> GetCountriesAsync()
         {
-            return _context.Countries.ToListAsync();
+            return _countryService.GetCountriesAsync();
         }
 
         // GET: api/Countries/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Country>> GetCountryAsync(int id)
         {
-            Country? country = await _context.Countries.FindAsync(id);
+            var country = await _countryService.GetCountryAsync(id);
 
             if (country == null)
             {
@@ -36,23 +42,21 @@ namespace UserManagementAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Country>> PostCountryAsync(Country country)
         {
-            _context.Countries.Add(country);
-            await _context.SaveChangesAsync();
+            var createdCountry = await _countryService.CreateCountryAsync(country);
 
-            return CreatedAtAction(nameof(GetCountryAsync), new { id = country.Id }, country);
+            return CreatedAtAction(nameof(GetCountryAsync), new { id = createdCountry.Id }, createdCountry);
         }
 
         // PUT: api/Countries/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCountryAsync(int id, Country country)
         {
-            if (id != country.Id)
+            var updatedCountry = await _countryService.UpdateCountryAsync(id, country);
+
+            if (updatedCountry == null)
             {
                 return BadRequest();
             }
-
-            _context.Entry(country).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -61,15 +65,12 @@ namespace UserManagementAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCountryAsync(int id)
         {
-            Country? country = await _context.Countries.FindAsync(id);
+            var country = await _countryService.DeleteCountryAsync(id);
 
             if (country == null)
             {
                 return NotFound();
             }
-
-            _context.Countries.Remove(country);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
