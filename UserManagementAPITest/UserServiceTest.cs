@@ -9,7 +9,7 @@ using Xunit;
 
 namespace UserManagementAPITest
 {
-    public class UserServiceTests: IDisposable
+    public class UserServiceTests
     {
         private readonly UserService _userService;
         private readonly Mock<UserManagementDbContext> _contextMock;
@@ -31,11 +31,6 @@ namespace UserManagementAPITest
             _contextMock.Setup(x => x.Database).Returns(context.Database);
 
             _userService = new UserService(_contextMock.Object);
-        }
-
-        public void Dispose()
-        {
-            _contextMock.Object.Database.EnsureDeleted();
         }
 
         [Fact]
@@ -103,8 +98,8 @@ namespace UserManagementAPITest
             var country = new Country { Name = "Country" };
             var company = new Company { Name = "Company" };
 
-            _contextMock.Setup(x => x.Countries).ReturnsDbSet(new List<Country> { country });
-            _contextMock.Setup(x => x.Companies).ReturnsDbSet(new List<Company> { company });
+            _contextMock.Setup(x => x.Countries).ReturnsDbSet([country]);
+            _contextMock.Setup(x => x.Companies).ReturnsDbSet([company]);
 
             var userDto = new UserDto { Id = 1, Email = "test@test.com", First = "First", Last = "Last", Company = company.Name, Country = country.Name };
 
@@ -126,7 +121,7 @@ namespace UserManagementAPITest
             UserDto? userDto = null;
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => _userService.CreateUserAsync(userDto));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _userService.CreateUserAsync(userDto ?? throw new ArgumentNullException()));
         }
 
         [Fact]
@@ -210,7 +205,7 @@ namespace UserManagementAPITest
             User? user = null;
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => _userService.UpdateUserAsync(1, user));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _userService.UpdateUserAsync(1, user ?? throw new ArgumentNullException()));
         }
 
         [Fact]

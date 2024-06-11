@@ -23,6 +23,11 @@ namespace UserManagementAPI.Services
         {
             ArgumentNullException.ThrowIfNull(userDto);
 
+            if (string.IsNullOrEmpty(userDto.Email) || string.IsNullOrEmpty(userDto.First) || string.IsNullOrEmpty(userDto.Last) || string.IsNullOrEmpty(userDto.Country) || string.IsNullOrEmpty(userDto.Company))
+            {
+                throw new ArgumentException("Email, First, Last, Country or Company cannot be null or empty.");
+            }
+
             var country = await _context.Countries.FirstOrDefaultAsync(c => c.Name == userDto.Country);
             var company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
 
@@ -53,11 +58,26 @@ namespace UserManagementAPI.Services
 
             foreach (UserDto userDto in userDtos)
             {
-                Country country = _context.Countries.FirstOrDefault(c => c.Name == userDto.Country)
-                                  ?? _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
+                if (string.IsNullOrEmpty(userDto.Email) || string.IsNullOrEmpty(userDto.First) || string.IsNullOrEmpty(userDto.Last) || string.IsNullOrEmpty(userDto.Country) || string.IsNullOrEmpty(userDto.Company))
+                {
+                    throw new ArgumentException("Email, First, Last, Country or Company cannot be null or empty.");
+                }
 
-                Company company = _context.Companies.FirstOrDefault(c => c.Name == userDto.Company)
-                                   ?? _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
+                Country? country = await _context.Countries.FirstOrDefaultAsync(c => c.Name == userDto.Country);
+                
+                if (country == null)
+                {
+                    country = _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
+                    await _context.SaveChangesAsync();
+                }
+
+                Company? company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
+
+                if (company == null)
+                {
+                    company = _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
+                    await _context.SaveChangesAsync();
+                }
 
                 users.Add(new User
                 {
@@ -80,6 +100,11 @@ namespace UserManagementAPI.Services
         public async Task<User?> UpdateUserAsync(int id, User user)
         {
             ArgumentNullException.ThrowIfNull(user);
+
+            if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.First) || string.IsNullOrEmpty(user.Last) || user.CountryId == 0 || user.CompanyId == 0)
+            {
+                throw new ArgumentException("Email, First, Last, Country or Company cannot be null or empty.");
+            }
 
             if (id != user.Id)
             {
@@ -108,7 +133,8 @@ namespace UserManagementAPI.Services
 
         public async Task<User?> DeleteUserAsync(int id)
         {
-            User user = await _context.Users.FindAsync(id);
+            User? user = await _context.Users.FindAsync(id);
+
             if (user == null)
             {
                 return null;
