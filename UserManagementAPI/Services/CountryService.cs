@@ -4,23 +4,18 @@ using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
 {
-    public class CountryService : ICountryService
+    public class CountryService(UserManagementDbContext context) : ICountryService
     {
-        private readonly UserManagementDbContext _context;
-
-        public CountryService(UserManagementDbContext context)
-        {
-            _context = context;
-        }
+        private readonly UserManagementDbContext _context = context;
 
         public Task<List<Country>> GetCountriesAsync()
         {
             return _context.Countries.ToListAsync();
         }
 
-        public async Task<Country?> GetCountryAsync(int id)
+        public Task<Country?> GetCountryAsync(int id)
         {
-            return await _context.Countries.FindAsync(id);
+            return _context.Countries.FindAsync(id).AsTask();
         }
 
         public async Task<Country> CreateCountryAsync(Country country)
@@ -46,7 +41,7 @@ namespace UserManagementAPI.Services
 
         public async Task<Country?> DeleteCountryAsync(int id)
         {
-            var country = await _context.Countries.FindAsync(id);
+            Country country = await _context.Countries.FindAsync(id);
             if (country == null)
             {
                 return null;

@@ -4,23 +4,18 @@ using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
 {
-    public class CompanyService : ICompanyService
+    public class CompanyService(UserManagementDbContext context) : ICompanyService
     {
-        private readonly UserManagementDbContext _context;
-
-        public CompanyService(UserManagementDbContext context)
-        {
-            _context = context;
-        }
+        private readonly UserManagementDbContext _context = context;
 
         public Task<List<Company>> GetCompaniesAsync()
         {
             return _context.Companies.ToListAsync();
         }
 
-        public async Task<Company?> GetCompanyAsync(int id)
+        public Task<Company?> GetCompanyAsync(int id)
         {
-            return await _context.Companies.FindAsync(id);
+            return _context.Companies.FindAsync(id).AsTask();
         }
 
         public async Task<Company> CreateCompanyAsync(Company company)
@@ -31,22 +26,38 @@ namespace UserManagementAPI.Services
             return company;
         }
 
-        public async Task<Company?> UpdateCompanyAsync(int id, Company company)
+        public async Task<Company?> UpdateCompanyAsync(Company company)
         {
-            if (id != company.Id)
+            if (company == null || company.Id <= 0)
             {
-                return null;
+                throw new ArgumentException("Company is null or Company ID is not valid.");
             }
 
             _context.Entry(company).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!CompanyExists(company.Id))
+                {
+                    return null;
+                }
+                else
+                {
+                    throw;
+                }
+            }
 
             return company;
         }
 
         public async Task<Company?> DeleteCompanyAsync(int id)
         {
-            var company = await _context.Companies.FindAsync(id);
+            Company company = await _context.Companies.FindAsync(id);
+
             if (company == null)
             {
                 return null;
@@ -56,6 +67,11 @@ namespace UserManagementAPI.Services
             await _context.SaveChangesAsync();
 
             return company;
+        }
+
+        private bool CompanyExists(int id)
+        {
+            return _context.Companies.Any(e => e.Id == id);
         }
     }
 }

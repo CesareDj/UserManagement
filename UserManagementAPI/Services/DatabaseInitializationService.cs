@@ -1,29 +1,20 @@
 ﻿using Newtonsoft.Json;
-using UserManagementAPI.Data;
 using UserManagementAPI.DTOs;
-using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
 {
-    public class DatabaseInitializationService : IDatabaseInitializationService
+    public class DatabaseInitializationService(IUserService userService, IWebHostEnvironment env) : IDatabaseInitializationService
     {
-        private readonly IUserService _userService;
-        private readonly IWebHostEnvironment _env;
-
-        public DatabaseInitializationService(IUserService userService, IWebHostEnvironment env)
-        {
-            _userService = userService;
-            _env = env;
-        }
+        private readonly IUserService _userService = userService;
+        private readonly IWebHostEnvironment _env = env;
 
         public async Task InitializeAsync()
         {
-            var jsonFilePath = Path.Combine(_env.ContentRootPath, "Data", "Users.json");
+            string jsonFilePath = Path.Combine(_env.ContentRootPath, "Data", "Users.json");
+
             if (File.Exists(jsonFilePath))
             {
-                var json = await File.ReadAllTextAsync(jsonFilePath);
-                var userDtos = JsonConvert.DeserializeObject<List<UserDto>>(json);
-                await _userService.CreateUsersAsync(userDtos);
+                await _userService.CreateUsersAsync(JsonConvert.DeserializeObject<List<UserDto>>(await File.ReadAllTextAsync(jsonFilePath)));
             }
             else
             {

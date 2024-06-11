@@ -5,41 +5,36 @@ using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
 {
-    public class UserService : IUserService
+    public class UserService(UserManagementDbContext context) : IUserService
     {
-        private readonly UserManagementDbContext _context;
-
-        public UserService(UserManagementDbContext context)
-        {
-            _context = context;
-        }
+        private readonly UserManagementDbContext _context = context;
 
         public Task<List<User>> GetUsersAsync()
         {
             return _context.Users.ToListAsync();
         }
 
-        public async Task<User?> GetUserAsync(int id)
+        public Task<User?> GetUserAsync(int id)
         {
-            return await _context.Users.FindAsync(id);
+            return _context.Users.FindAsync(id).AsTask();
         }
 
         public async Task<User> CreateUserAsync(UserDto userDto)
         {
-            var country = _context.Countries.FirstOrDefault(c => c.Name == userDto.Country)
-                          ?? _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
+            Country country = _context.Countries.FirstOrDefault(c => c.Name == userDto.Country)
+                              ?? _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
 
-            var company = _context.Companies.FirstOrDefault(c => c.Name == userDto.Company)
-                           ?? _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
+            Company company = _context.Companies.FirstOrDefault(c => c.Name == userDto.Company)
+                               ?? _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
 
-            var user = new User
+            User user = new()
             {
                 Id = userDto.Id,
                 Email = userDto.Email,
                 First = userDto.First,
                 Last = userDto.Last,
                 CompanyId = company.Id,
-                CreatedAt = userDto.CreatedAt,
+                CreatedAt = userDto.CreatedAt ?? DateTime.UtcNow,
                 CountryId = country.Id
             };
 
@@ -51,15 +46,15 @@ namespace UserManagementAPI.Services
 
         public async Task<List<User>> CreateUsersAsync(List<UserDto> userDtos)
         {
-            var users = new List<User>();
+            List<User> users = [];
 
-            foreach (var userDto in userDtos)
+            foreach (UserDto userDto in userDtos)
             {
-                var country = _context.Countries.FirstOrDefault(c => c.Name == userDto.Country)
-                              ?? _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
+                Country country = _context.Countries.FirstOrDefault(c => c.Name == userDto.Country)
+                                  ?? _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
 
-                var company = _context.Companies.FirstOrDefault(c => c.Name == userDto.Company)
-                               ?? _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
+                Company company = _context.Companies.FirstOrDefault(c => c.Name == userDto.Company)
+                                   ?? _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
 
                 users.Add(new User
                 {
@@ -68,7 +63,7 @@ namespace UserManagementAPI.Services
                     First = userDto.First,
                     Last = userDto.Last,
                     CompanyId = company.Id,
-                    CreatedAt = userDto.CreatedAt,
+                    CreatedAt = userDto.CreatedAt ?? DateTime.UtcNow,
                     CountryId = country.Id
                 });
             }
@@ -94,7 +89,7 @@ namespace UserManagementAPI.Services
 
         public async Task<User?> DeleteUserAsync(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            User user = await _context.Users.FindAsync(id);
             if (user == null)
             {
                 return null;

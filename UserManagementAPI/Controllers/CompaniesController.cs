@@ -9,14 +9,9 @@ namespace UserManagementAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class CompaniesController : ControllerBase
+    public class CompaniesController(ICompanyService companyService) : ControllerBase
     {
-        private readonly ICompanyService _companyService;
-
-        public CompaniesController(ICompanyService companyService)
-        {
-            _companyService = companyService;
-        }
+        private readonly ICompanyService _companyService = companyService;
 
         // GET: api/Companies
         [HttpGet]
@@ -49,14 +44,19 @@ namespace UserManagementAPI.Controllers
         }
 
         // PUT: api/Companies/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCompanyAsync(int id, Company company)
+        [HttpPut]
+        public async Task<IActionResult> PutCompanyAsync(Company company)
         {
-            var updatedCompany = await _companyService.UpdateCompanyAsync(id, company);
+            if (company == null || company.Id <= 0)
+            {
+                return BadRequest();
+            }
+
+            var updatedCompany = await _companyService.UpdateCompanyAsync(company);
 
             if (updatedCompany == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
             return NoContent();
