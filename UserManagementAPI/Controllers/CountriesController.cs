@@ -49,9 +49,9 @@ namespace UserManagementAPI.Controllers
 
         // PUT: api/Countries/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCountryAsync(int id, Country country)
+        public async Task<IActionResult> PutCountryAsync(Country country)
         {
-            var updatedCountry = await _countryService.UpdateCountryAsync(id, country);
+            var updatedCountry = await _countryService.UpdateCountryAsync(country);
 
             if (updatedCountry == null)
             {

@@ -7,7 +7,7 @@ namespace UserManagementAPI.Services
         Task<List<Country>> GetCountriesAsync();
         Task<Country?> GetCountryAsync(int id);
         Task<Country> CreateCountryAsync(Country country);
-        Task<Country?> UpdateCountryAsync(int id, Country country);
+        Task<Country?> UpdateCountryAsync(Country country);
         Task<Country?> DeleteCountryAsync(int id);
     }
 }

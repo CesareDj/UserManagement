@@ -52,7 +52,7 @@ namespace UserManagementAPI.Services
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!CompanyExists(company.Id))
+                if (!_context.Companies.Any(e => e.Id == company.Id))
                 {
                     throw new ArgumentException($"No company with ID {company.Id} exists.");
                 }
@@ -74,11 +74,6 @@ namespace UserManagementAPI.Services
             await _context.SaveChangesAsync();
 
             return company;
-        }
-
-        private bool CompanyExists(int id)
-        {
-            return _context.Companies.Any(e => e.Id == id);
         }
     }
 }
