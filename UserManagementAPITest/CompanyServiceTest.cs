@@ -6,6 +6,10 @@ using UserManagementAPI.Data;
 using UserManagementAPI.Models;
 using UserManagementAPI.Services;
 using Xunit;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace UserManagementAPITest
 {
@@ -16,7 +20,6 @@ namespace UserManagementAPITest
 
         public CompanyServiceTests()
         {
-            DbContextOptions<UserManagementDbContext> options = new DbContextOptionsBuilder<UserManagementDbContext>()
                 .UseInMemoryDatabase(databaseName: "TestDatabase")
                 .Options;
 
