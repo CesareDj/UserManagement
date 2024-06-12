@@ -125,15 +125,26 @@ namespace UserManagementAPITest
         }
 
         [Fact]
-        public async Task CreateUserAsync_ThrowsException_WhenUserIdExists()
+        public async Task CreateUserAsync_ThrowsException_WhenUserEmailExists()
         {
             // Arrange
-            var userDto = new UserDto { Id = 1, Email = "test@test.com", First = "First", Last = "Last", Company = "Company", Country = "Country" };
-            _contextMock.Object.Users.Add(new User { Id = 1 });
-            await _contextMock.Object.SaveChangesAsync();
+            var options = new DbContextOptionsBuilder<UserManagementDbContext>()
+                .UseInMemoryDatabase(databaseName: "CreateUserAsyncTestDb") // Asegúrate de usar un nombre de base de datos único para cada prueba
+                .Options;
+
+            using var context = new UserManagementDbContext(options);
+            var userService = new UserService(context);
+
+            // Añade un usuario existente a la base de datos en memoria
+            var existingUser = new User { Email = "test@test.com", First = "First", Last = "Last", CompanyId = 1, CountryId = 1 };
+            context.Users.Add(existingUser);
+            await context.SaveChangesAsync();
+
+            var userDto = new UserDto { Email = "test@test.com", First = "First", Last = "Last", Company = "Company", Country = "Country" };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _userService.CreateUserAsync(userDto));
+            // Espera una excepción debido a que el email ya existe
+            await Assert.ThrowsAsync<ArgumentException>(() => userService.CreateUserAsync(userDto));
         }
 
         [Fact]
@@ -157,13 +168,29 @@ namespace UserManagementAPITest
         }
 
         [Fact]
-        public async Task CreateUserAsync_ThrowsException_WhenCountryOrCompanyDoesNotExist()
+        public async Task CreateUserAsync_CreatesCountryAndCompany_WhenTheyDoNotExist()
         {
             // Arrange
-            var userDto = new UserDto { Id = 1, Email = "test@test.com", First = "First", Last = "Last", Company = "NonExistentCompany", Country = "NonExistentCountry" };
+            var userDto = new UserDto
+            {
+                Id = 1,
+                Email = "test@test.com",
+                First = "First",
+                Last = "Last",
+                Company = "NewCompany",
+                Country = "NewCountry"
+            };
 
-            // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _userService.CreateUserAsync(userDto));
+            _contextMock.Setup(x => x.Countries).ReturnsDbSet([]);
+            _contextMock.Setup(x => x.Companies).ReturnsDbSet([]);
+
+            // Act
+            var result = await _userService.CreateUserAsync(userDto);
+
+            // Assert
+            _contextMock.Verify(x => x.Companies.Add(It.Is<Company>(c => c.Name == userDto.Company)), Times.Once);
+            _contextMock.Verify(x => x.Countries.Add(It.Is<Country>(c => c.Name == userDto.Country)), Times.Once);
+            _contextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
         }
 
         [Fact]
