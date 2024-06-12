@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using UserManagementAPI.Data;
 using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
 using UserManagementAPI.Services;
@@ -9,14 +7,9 @@ namespace UserManagementAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class UsersController : ControllerBase
+    public class UsersController(IUserService userService) : ControllerBase
     {
-        private readonly IUserService _userService;
-
-        public UsersController(IUserService userService)
-        {
-            _userService = userService;
-        }
+        private readonly IUserService _userService = userService;
 
         // GET: api/Users
         [HttpGet]
@@ -48,11 +41,11 @@ namespace UserManagementAPI.Controllers
             return CreatedAtAction(nameof(GetUserAsync), new { id = user.Id }, user);
         }
 
-        // PUT: api/Users/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUserAsync(int id, User user)
+        // PUT: api/Users
+        [HttpPut]
+        public async Task<IActionResult> PutUserAsync(User user)
         {
-            var updatedUser = await _userService.UpdateUserAsync(id, user);
+            var updatedUser = await _userService.UpdateUserAsync(user);
 
             if (updatedUser == null)
             {

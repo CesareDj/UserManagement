@@ -43,7 +43,7 @@ namespace UserManagementAPI.Controllers
             return CreatedAtAction(nameof(GetCompanyAsync), new { id = createdCompany.Id }, createdCompany);
         }
 
-        // PUT: api/Companies/5
+        // PUT: api/Companies
         [HttpPut]
         public async Task<IActionResult> PutCompanyAsync(Company company)
         {

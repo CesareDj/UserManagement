@@ -9,6 +9,11 @@ namespace UserManagementAPI.Services
     {
         private readonly UserManagementDbContext _context = context;
 
+        public async Task<bool> AnyUserExistsAsync()
+        {
+            return await _context.Users.AnyAsync();
+        }
+
         public Task<List<User>> GetUsersAsync()
         {
             return _context.Users.ToListAsync();
@@ -23,22 +28,41 @@ namespace UserManagementAPI.Services
         {
             ArgumentNullException.ThrowIfNull(userDto);
 
+            if (userDto.Id < 0)
+            {
+                throw new ArgumentException("El ID del usuario es inválido.", nameof(userDto));
+            }
+
             if (string.IsNullOrEmpty(userDto.Email) || string.IsNullOrEmpty(userDto.First) || string.IsNullOrEmpty(userDto.Last) || string.IsNullOrEmpty(userDto.Country) || string.IsNullOrEmpty(userDto.Company))
             {
                 throw new ArgumentException("Email, First, Last, Country or Company cannot be null or empty.");
             }
 
-            var country = await _context.Countries.FirstOrDefaultAsync(c => c.Name == userDto.Country);
-            var company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
+            User? existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
 
-            if (country == null || company == null)
+            if (existingUser != null)
             {
-                throw new ArgumentException("Country or Company does not exist.");
+                throw new ArgumentException($"Un usuario con el Email {userDto.Email} ya existe.");
             }
 
-            var user = new User
+            Country? country = await _context.Countries.FirstOrDefaultAsync(c => c.Name == userDto.Country);
+
+            if (country == null)
             {
-                Id = userDto.Id,
+                country = new Country { Name = userDto.Country };
+                _context.Countries.Add(country);
+            }
+
+            Company? company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
+
+            if (company == null)
+            {
+                company = new Company { Name = userDto.Company };
+                _context.Companies.Add(company);
+            }
+
+            User user = new()
+            {
                 Email = userDto.Email,
                 First = userDto.First,
                 Last = userDto.Last,
@@ -54,6 +78,11 @@ namespace UserManagementAPI.Services
 
         public async Task<List<User>> CreateUsersAsync(List<UserDto> userDtos)
         {
+            if (userDtos == null || userDtos.Count == 0)
+            {
+                throw new ArgumentException("La lista de UserDto no puede ser nula o vacía.");
+            }
+
             List<User> users = [];
 
             foreach (UserDto userDto in userDtos)
@@ -67,7 +96,8 @@ namespace UserManagementAPI.Services
                 
                 if (country == null)
                 {
-                    country = _context.Countries.Add(new Country { Name = userDto.Country }).Entity;
+                    country = new Country { Name = userDto.Country };
+                    _context.Countries.Add(country);
                     await _context.SaveChangesAsync();
                 }
 
@@ -75,20 +105,26 @@ namespace UserManagementAPI.Services
 
                 if (company == null)
                 {
-                    company = _context.Companies.Add(new Company { Name = userDto.Company }).Entity;
+                    company = new Company { Name = userDto.Company };
+                    _context.Companies.Add(company);
                     await _context.SaveChangesAsync();
                 }
 
-                users.Add(new User
+                User user = new()
                 {
-                    Id = userDto.Id,
                     Email = userDto.Email,
                     First = userDto.First,
                     Last = userDto.Last,
                     CompanyId = company.Id,
-                    CreatedAt = userDto.CreatedAt ?? DateTime.UtcNow,
                     CountryId = country.Id
-                });
+                };
+
+                if (userDto.CreatedAt.HasValue)
+                {
+                    user.CreatedAt = userDto.CreatedAt.Value;
+                }
+
+                users.Add(user);
             }
 
             _context.Users.AddRange(users);
@@ -97,7 +133,36 @@ namespace UserManagementAPI.Services
             return users;
         }
 
-        public async Task<User?> UpdateUserAsync(int id, User user)
+        public async Task<List<User>> CreateUsersAsync(List<User> users)
+        {
+            if (users == null || users.Count == 0)
+            {
+                throw new ArgumentException("La lista de usuarios no puede ser nula o vacía.");
+            }
+
+            foreach (User user in users)
+            {
+                if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.First) || string.IsNullOrEmpty(user.Last) || user.CountryId == 0 || user.CompanyId == 0)
+                {
+                    throw new ArgumentException("Email, First, Last, CountryId o CompanyId no pueden ser nulos o vacíos.");
+                }
+
+                bool countryExists = await _context.Countries.AnyAsync(c => c.Id == user.CountryId);
+                bool companyExists = await _context.Companies.AnyAsync(c => c.Id == user.CompanyId);
+
+                if (!countryExists || !companyExists)
+                {
+                    throw new ArgumentException("Country o Company no existen.");
+                }
+            }
+
+            _context.Users.AddRange(users);
+            await _context.SaveChangesAsync();
+
+            return users;
+        }
+
+        public async Task<User?> UpdateUserAsync(User user)
         {
             ArgumentNullException.ThrowIfNull(user);
 
@@ -106,12 +171,7 @@ namespace UserManagementAPI.Services
                 throw new ArgumentException("Email, First, Last, Country or Company cannot be null or empty.");
             }
 
-            if (id != user.Id)
-            {
-                throw new ArgumentException("Id does not match.");
-            }
-
-            var existingUser = await _context.Users.FindAsync(id) ?? throw new ArgumentException("User does not exist.");
+            var existingUser = await _context.Users.FindAsync(user.Id) ?? throw new ArgumentException("User does not exist.");
             var country = await _context.Countries.FindAsync(user.CountryId);
             var company = await _context.Companies.FindAsync(user.CompanyId);
 
