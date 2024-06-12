@@ -93,18 +93,21 @@ namespace UserManagementAPI.Services
                 }
 
                 Country? country = await _context.Countries.FirstOrDefaultAsync(c => c.Name == userDto.Country);
-                Company? company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
-
+                
                 if (country == null)
                 {
                     country = new Country { Name = userDto.Country };
                     _context.Countries.Add(country);
+                    await _context.SaveChangesAsync();
                 }
+
+                Company? company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
 
                 if (company == null)
                 {
                     company = new Company { Name = userDto.Company };
                     _context.Companies.Add(company);
+                    await _context.SaveChangesAsync();
                 }
 
                 User user = new()
