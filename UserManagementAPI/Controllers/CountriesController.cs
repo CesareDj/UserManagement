@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using UserManagementAPI.Data;
 using UserManagementAPI.Models;
 using UserManagementAPI.Services;
 
@@ -8,14 +6,9 @@ namespace UserManagementAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class CountriesController : ControllerBase
+    public class CountriesController(ICountryService countryService) : ControllerBase
     {
-        private readonly ICountryService _countryService;
-
-        public CountriesController(ICountryService countryService)
-        {
-            _countryService = countryService;
-        }
+        private readonly ICountryService _countryService = countryService;
 
         // GET: api/Countries
         [HttpGet]
@@ -48,7 +41,7 @@ namespace UserManagementAPI.Controllers
         }
 
         // PUT: api/Countries/5
-        [HttpPut("{id}")]
+        [HttpPut]
         public async Task<IActionResult> PutCountryAsync(Country country)
         {
             var updatedCountry = await _countryService.UpdateCountryAsync(country);

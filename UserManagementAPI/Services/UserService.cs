@@ -9,6 +9,11 @@ namespace UserManagementAPI.Services
     {
         private readonly UserManagementDbContext _context = context;
 
+        public async Task<bool> AnyUserExistsAsync()
+        {
+            return await _context.Users.AnyAsync();
+        }
+
         public Task<List<User>> GetUsersAsync()
         {
             return _context.Users.ToListAsync();
@@ -97,7 +102,7 @@ namespace UserManagementAPI.Services
             return users;
         }
 
-        public async Task<User?> UpdateUserAsync(int id, User user)
+        public async Task<User?> UpdateUserAsync(User user)
         {
             ArgumentNullException.ThrowIfNull(user);
 
@@ -106,12 +111,7 @@ namespace UserManagementAPI.Services
                 throw new ArgumentException("Email, First, Last, Country or Company cannot be null or empty.");
             }
 
-            if (id != user.Id)
-            {
-                throw new ArgumentException("Id does not match.");
-            }
-
-            var existingUser = await _context.Users.FindAsync(id) ?? throw new ArgumentException("User does not exist.");
+            var existingUser = await _context.Users.FindAsync(user.Id) ?? throw new ArgumentException("User does not exist.");
             var country = await _context.Countries.FindAsync(user.CountryId);
             var company = await _context.Companies.FindAsync(user.CompanyId);
 

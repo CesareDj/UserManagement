@@ -26,11 +26,11 @@ namespace UserManagementAPI.Data
             }
         }
 
-        public override int SaveChanges()
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             DateTime currentTime = DateTime.Now;
 
-            foreach (EntityEntry entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added))
+            foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added))
             {
                 if (entry.Entity is BaseEntity entity)
                 {
@@ -39,7 +39,7 @@ namespace UserManagementAPI.Data
                 }
             }
 
-            foreach (EntityEntry entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Modified))
+            foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Modified))
             {
                 if (entry.Entity is BaseEntity entity)
                 {
@@ -48,14 +48,14 @@ namespace UserManagementAPI.Data
                 }
             }
 
-            foreach (EntityEntry entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Deleted && e.Metadata.GetProperties().Any(x => x.Name == "DeletedAt")))
+            foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Deleted && e.Metadata.GetProperties().Any(x => x.Name == "DeletedAt")))
             {
                 entry.State = EntityState.Unchanged;
                 entry.CurrentValues["DeletedAt"] = currentTime;
                 entry.CurrentValues["DeletedBy"] = "System";
             }
 
-            return base.SaveChanges();
+            return await base.SaveChangesAsync(cancellationToken);
         }
     }
 }

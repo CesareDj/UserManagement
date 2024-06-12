@@ -173,7 +173,7 @@ namespace UserManagementAPITest
             var user = new User { Id = 1 };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(2, user));
+            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(user));
         }
 
         [Fact]
@@ -191,7 +191,7 @@ namespace UserManagementAPITest
             var updatedUser = new User { Id = 1, Email = "updated@test.com", First = "First", Last = "Last", CountryId = country.Id, CompanyId = company.Id };
 
             // Act
-            var result = await _userService.UpdateUserAsync(1, updatedUser);
+            var result = await _userService.UpdateUserAsync(updatedUser);
 
             // Assert
             Assert.NotNull(result);
@@ -205,7 +205,7 @@ namespace UserManagementAPITest
             User? user = null;
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => _userService.UpdateUserAsync(1, user ?? throw new ArgumentNullException()));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _userService.UpdateUserAsync(user ?? throw new ArgumentNullException()));
         }
 
         [Fact]
@@ -215,7 +215,7 @@ namespace UserManagementAPITest
             var user = new User { Id = 1 };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(2, user));
+            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(user));
         }
 
         [Fact]
@@ -225,7 +225,7 @@ namespace UserManagementAPITest
             var user = new User { Id = -1 };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(-1, user));
+            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(user));
         }
 
         [Fact]
@@ -235,7 +235,7 @@ namespace UserManagementAPITest
             var user = new User { Id = 1, Email = "test@test.com", First = "First", Last = "Last" }; // CompanyId and CountryId are missing
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(1, user));
+            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(user));
         }
 
         [Fact]
@@ -245,7 +245,7 @@ namespace UserManagementAPITest
             var user = new User { Id = 1, Email = "test@test.com", First = "First", Last = "Last", CompanyId = 999, CountryId = 999 }; // Nonexistent CompanyId and CountryId
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(1, user));
+            await Assert.ThrowsAsync<ArgumentException>(() => _userService.UpdateUserAsync(user));
         }
 
         [Fact]
@@ -275,6 +275,45 @@ namespace UserManagementAPITest
             // Assert
             Assert.NotNull(result);
             Assert.Equal(1, result.Id);
+        }
+
+        [Fact]
+        public async Task AnyUserExistsAsync_ReturnsFalse_WhenNoUsersExist()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<UserManagementDbContext>()
+                .UseInMemoryDatabase(databaseName: "TestDbForAnyUserExistsAsync_ReturnsFalse")
+                .Options;
+
+            using var context = new UserManagementDbContext(options);
+            var service = new UserService(context);
+
+            // Act
+            var result = await service.AnyUserExistsAsync();
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task AnyUserExistsAsync_ReturnsTrue_WhenUsersExist()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<UserManagementDbContext>()
+                .UseInMemoryDatabase(databaseName: "TestDbForAnyUserExistsAsync_ReturnsTrue")
+                .Options;
+
+            using var context = new UserManagementDbContext(options);
+            context.Users.Add(new User { Id = 1, Email = "test@example.com", First = "Test", Last = "User" });
+            await context.SaveChangesAsync();
+
+            var service = new UserService(context);
+
+            // Act
+            var result = await service.AnyUserExistsAsync();
+
+            // Assert
+            Assert.True(result);
         }
     }
 }
