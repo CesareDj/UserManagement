@@ -1,0 +1,18 @@
+- USO:
+
+1) La solución consta de dos proyectos, uno de test unitarios y el otro es un Rest API.
+2) Se ha hecho en .Net Core, utilizando la última versión del mismo.
+3) Los test se realizaron con XUnit.
+4) No hay base de datos que instalar ni scripts. Si no existe BBDD de tipo SQLite (para no tener que realizar este tipo de despliegues para una aplicación tan pequeña, que luego hay que eliminar todo y siempre quedan restos en el sistema), la crea y con las migraciones automáticamente crea las tablas y relacciones. En este momento lee el archivo JSON con los usuarios y puebla las tablas USER, COUNTRY y COMPANY.
+5) Una vez termina de poblarse la BBDD, se lanza SWAGGER y puede probarse el CRUD de usuarios, países y empresas; tantas veces como se desee.
+
+- TECNOLOGÍAS UTILIZADAS:
+
+C#
+XUnit
+Automapper
+GIT (GitFlow y GitHub)
+
+- SE PUEDE REVISAR EN:
+
+https://github.com/CesareDj/UserManagement

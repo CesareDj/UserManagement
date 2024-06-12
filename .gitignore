@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/UserManagementAPI/mydatabase.db
+/UserManagementAPI/mydatabase.db-shm
+/UserManagementAPI/mydatabase.db-wal
