@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using UserManagementAPI.Data;
+using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using UserManagementAPI.Services;
 
 namespace UserManagementAPI.Controllers
@@ -15,14 +13,14 @@ namespace UserManagementAPI.Controllers
 
         // GET: api/Companies
         [HttpGet]
-        public Task<List<Company>> GetCompaniesAsync()
+        public IAsyncEnumerable<CompanyResponse> GetCompaniesAsync()
         {
             return _companyService.GetCompaniesAsync();
         }
 
         // GET: api/Companies/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Company>> GetCompanyAsync(int id)
+        public async Task<ActionResult<CompanyResponse>> GetCompanyAsync(int id)
         {
             var company = await _companyService.GetCompanyAsync(id);
 

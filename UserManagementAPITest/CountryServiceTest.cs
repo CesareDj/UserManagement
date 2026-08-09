@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
 using Moq.EntityFrameworkCore;
 using UserManagementAPI.Data;
+using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
 using UserManagementAPI.Services;
 using Xunit;
@@ -37,10 +38,16 @@ namespace UserManagementAPITest
             _mockContext.Setup(x => x.Countries).ReturnsDbSet(countries);
 
             // Act
-            List<Country> result = await _countryService.GetCountriesAsync();
+            List<CountryResponse> result = [];
+            await foreach (var item in _countryService.GetCountriesAsync())
+            {
+                result.Add(item);
+            }
 
             // Assert
-            Assert.Equal(countries, result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Country1", result[0].Name);
+            Assert.Equal("Country2", result[1].Name);
         }
 
         [Fact]
@@ -48,23 +55,24 @@ namespace UserManagementAPITest
         {
             // Arrange
             Country country = new() { Id = 1, Name = "Country1" };
-            _mockContext.Setup(db => db.Countries.FindAsync(1)).ReturnsAsync(country);
+            _mockContext.Setup(x => x.Countries).ReturnsDbSet([country]);
 
             // Act
-            Country? result = await _countryService.GetCountryAsync(1);
+            CountryResponse? result = await _countryService.GetCountryAsync(1);
 
             // Assert
-            Assert.Equal(country, result);
+            Assert.NotNull(result);
+            Assert.Equal(country.Name, result.Name);
         }
 
         [Fact]
         public async Task GetCountryAsync_ReturnsNull_WhenCountryDoesNotExist()
         {
             // Arrange
-            _mockContext.Setup(db => db.Countries.FindAsync(1)).ReturnsAsync(value: null);
+            _mockContext.Setup(x => x.Countries).ReturnsDbSet([]);
 
             // Act
-            Country? result = await _countryService.GetCountryAsync(1);
+            CountryResponse? result = await _countryService.GetCountryAsync(1);
 
             // Assert
             Assert.Null(result);

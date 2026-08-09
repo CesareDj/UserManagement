@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
 using Moq.EntityFrameworkCore;
 using UserManagementAPI.Data;
+using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
 using UserManagementAPI.Services;
 using Xunit;
@@ -37,10 +38,16 @@ namespace UserManagementAPITest
             _mockContext.Setup(x => x.Companies).ReturnsDbSet(companies);
 
             // Act
-            List<Company> result = await _companyService.GetCompaniesAsync();
+            List<CompanyResponse> result = [];
+            await foreach (var item in _companyService.GetCompaniesAsync())
+            {
+                result.Add(item);
+            }
 
             // Assert
-            Assert.Equal(companies, result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Company1", result[0].Name);
+            Assert.Equal("Company2", result[1].Name);
         }
 
         [Fact]
@@ -48,23 +55,24 @@ namespace UserManagementAPITest
         {
             // Arrange
             Company company = new() { Id = 1, Name = "Company1" };
-            _mockContext.Setup(db => db.Companies.FindAsync(1)).ReturnsAsync(company);
+            _mockContext.Setup(x => x.Companies).ReturnsDbSet([company]);
 
             // Act
-            Company? result = await _companyService.GetCompanyAsync(1);
+            CompanyResponse? result = await _companyService.GetCompanyAsync(1);
 
             // Assert
-            Assert.Equal(company, result);
+            Assert.NotNull(result);
+            Assert.Equal(company.Name, result.Name);
         }
 
         [Fact]
         public async Task GetCompanyAsync_ReturnsNull_WhenCompanyDoesNotExist()
         {
             // Arrange
-            _mockContext.Setup(db => db.Companies.FindAsync(1)).ReturnsAsync(value: null);
+            _mockContext.Setup(x => x.Companies).ReturnsDbSet([]);
 
             // Act
-            Company? result = await _companyService.GetCompanyAsync(1);
+            CompanyResponse? result = await _companyService.GetCompanyAsync(1);
 
             // Assert
             Assert.Null(result);

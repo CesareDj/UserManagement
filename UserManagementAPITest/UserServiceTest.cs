@@ -37,13 +37,17 @@ namespace UserManagementAPITest
         public async Task GetUsersAsync_ReturnsAllUsers()
         {
             // Arrange
-            var user1 = new User { Id = 1 };
-            var user2 = new User { Id = 2 };
+            var user1 = new User { Id = 1, Email = "a@a.com", First = "A", Last = "B", CountryId = 1, CompanyId = 1 };
+            var user2 = new User { Id = 2, Email = "b@b.com", First = "C", Last = "D", CountryId = 1, CompanyId = 1 };
 
             _contextMock.Setup(x => x.Users).ReturnsDbSet([user1, user2]);
 
             // Act
-            var result = await _userService.GetUsersAsync();
+            List<UserResponse> result = [];
+            await foreach (var item in _userService.GetUsersAsync())
+            {
+                result.Add(item);
+            }
 
             // Assert
             Assert.Equal(2, result.Count);
@@ -56,7 +60,11 @@ namespace UserManagementAPITest
             // No users added to context
 
             // Act
-            var result = await _userService.GetUsersAsync();
+            List<UserResponse> result = [];
+            await foreach (var item in _userService.GetUsersAsync())
+            {
+                result.Add(item);
+            }
 
             // Assert
             Assert.Empty(result);
@@ -66,7 +74,7 @@ namespace UserManagementAPITest
         public async Task GetUserAsync_ReturnsUser_WhenUserExists()
         {
             // Arrange
-            var user = new User { Id = 1 };
+            var user = new User { Id = 1, Email = "a@a.com", First = "A", Last = "B", CountryId = 1, CompanyId = 1 };
             _contextMock.Object.Users.Add(user);
             await _contextMock.Object.SaveChangesAsync();
 

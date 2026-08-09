@@ -1,13 +1,35 @@
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
+using System.IO.Compression;
 using UserManagementAPI.Data;
 using UserManagementAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddDbContext<UserManagementDbContext>(options =>
     options.UseSqlite("Data Source=./mydatabase.db"));
+
+// Response compression
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
 
 // Register your service
 builder.Services.AddScoped<IDatabaseInitializationService, DatabaseInitializationService>()
@@ -37,6 +59,8 @@ using (var scope = app.Services.CreateScope())
     var databaseInitializationService = scope.ServiceProvider.GetRequiredService<IDatabaseInitializationService>();
     await databaseInitializationService.InitializeAsync();
 }
+
+app.UseResponseCompression();
 
 app.UseHttpsRedirection();
 

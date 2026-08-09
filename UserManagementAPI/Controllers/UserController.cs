@@ -13,14 +13,14 @@ namespace UserManagementAPI.Controllers
 
         // GET: api/Users
         [HttpGet]
-        public Task<List<User>> GetUsersAsync()
+        public IAsyncEnumerable<UserResponse> GetUsersAsync()
         {
             return _userService.GetUsersAsync();
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUserAsync(int id)
+        public async Task<ActionResult<UserResponse>> GetUserAsync(int id)
         {
             var user = await _userService.GetUserAsync(id);
 

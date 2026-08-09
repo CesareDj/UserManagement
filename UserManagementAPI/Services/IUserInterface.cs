@@ -6,8 +6,8 @@ namespace UserManagementAPI.Services
     public interface IUserService
     {
         Task<bool> AnyUserExistsAsync();
-        Task<List<User>> GetUsersAsync();
-        Task<User?> GetUserAsync(int id);
+        IAsyncEnumerable<UserResponse> GetUsersAsync();
+        Task<UserResponse?> GetUserAsync(int id);
         Task<User> CreateUserAsync(UserDto userDto);
         Task<List<User>> CreateUsersAsync(List<UserDto> userDtos);
         Task<User?> UpdateUserAsync(User user);

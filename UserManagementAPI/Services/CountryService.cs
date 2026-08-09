@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using UserManagementAPI.Data;
+using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
@@ -8,14 +9,34 @@ namespace UserManagementAPI.Services
     {
         private readonly UserManagementDbContext _context = context;
 
-        public Task<List<Country>> GetCountriesAsync()
+        public IAsyncEnumerable<CountryResponse> GetCountriesAsync()
         {
-            return _context.Countries.ToListAsync();
+            return _context.Countries
+                .AsNoTracking()
+                .OrderBy(c => c.Id)
+                .Select(c => new CountryResponse
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
+                .AsAsyncEnumerable();
         }
 
-        public Task<Country?> GetCountryAsync(int id)
+        public async Task<CountryResponse?> GetCountryAsync(int id)
         {
-            return _context.Countries.FindAsync(id).AsTask();
+            return await _context.Countries
+                .AsNoTracking()
+                .Where(c => c.Id == id)
+                .Select(c => new CountryResponse
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Country> CreateCountryAsync(Country? country)
