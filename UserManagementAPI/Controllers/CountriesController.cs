@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
 using UserManagementAPI.Services;
 
@@ -12,14 +13,14 @@ namespace UserManagementAPI.Controllers
 
         // GET: api/Countries
         [HttpGet]
-        public Task<List<Country>> GetCountriesAsync()
+        public IAsyncEnumerable<CountryResponse> GetCountriesAsync()
         {
             return _countryService.GetCountriesAsync();
         }
 
         // GET: api/Countries/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Country>> GetCountryAsync(int id)
+        public async Task<ActionResult<CountryResponse>> GetCountryAsync(int id)
         {
             var country = await _countryService.GetCountryAsync(id);
 

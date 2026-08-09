@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using UserManagementAPI.Data;
+using UserManagementAPI.DTOs;
 using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
@@ -8,14 +9,34 @@ namespace UserManagementAPI.Services
     {
         private readonly UserManagementDbContext _context = context;
 
-        public Task<List<Company>> GetCompaniesAsync()
+        public IAsyncEnumerable<CompanyResponse> GetCompaniesAsync()
         {
-            return _context.Companies.ToListAsync();
+            return _context.Companies
+                .AsNoTracking()
+                .OrderBy(c => c.Id)
+                .Select(c => new CompanyResponse
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
+                .AsAsyncEnumerable();
         }
 
-        public Task<Company?> GetCompanyAsync(int id)
+        public async Task<CompanyResponse?> GetCompanyAsync(int id)
         {
-            return _context.Companies.FindAsync(id).AsTask();
+            return await _context.Companies
+                .AsNoTracking()
+                .Where(c => c.Id == id)
+                .Select(c => new CompanyResponse
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Company> CreateCompanyAsync(Company? company)

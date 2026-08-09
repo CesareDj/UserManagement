@@ -1,11 +1,12 @@
-﻿using UserManagementAPI.Models;
+﻿using UserManagementAPI.DTOs;
+using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
 {
     public interface ICompanyService
     {
-        Task<List<Company>> GetCompaniesAsync();
-        Task<Company?> GetCompanyAsync(int id);
+        IAsyncEnumerable<CompanyResponse> GetCompaniesAsync();
+        Task<CompanyResponse?> GetCompanyAsync(int id);
         Task<Company> CreateCompanyAsync(Company company);
         Task<Company?> UpdateCompanyAsync(Company company);
         Task<Company?> DeleteCompanyAsync(int id);

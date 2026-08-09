@@ -14,14 +14,42 @@ namespace UserManagementAPI.Services
             return await _context.Users.AnyAsync();
         }
 
-        public Task<List<User>> GetUsersAsync()
+        public IAsyncEnumerable<UserResponse> GetUsersAsync()
         {
-            return _context.Users.ToListAsync();
+            return _context.Users
+                .AsNoTracking()
+                .OrderBy(u => u.Id)
+                .Select(u => new UserResponse
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    First = u.First,
+                    Last = u.Last,
+                    CountryName = u.Country != null ? u.Country.Name : string.Empty,
+                    CompanyName = u.Company != null ? u.Company.Name : string.Empty,
+                    CreatedAt = u.CreatedAt,
+                    UpdatedAt = u.UpdatedAt
+                })
+                .AsAsyncEnumerable();
         }
 
-        public Task<User?> GetUserAsync(int id)
+        public async Task<UserResponse?> GetUserAsync(int id)
         {
-            return _context.Users.FindAsync(id).AsTask();
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == id)
+                .Select(u => new UserResponse
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    First = u.First,
+                    Last = u.Last,
+                    CountryName = u.Country != null ? u.Country.Name : string.Empty,
+                    CompanyName = u.Company != null ? u.Company.Name : string.Empty,
+                    CreatedAt = u.CreatedAt,
+                    UpdatedAt = u.UpdatedAt
+                })
+                .FirstOrDefaultAsync();
         }
 
         public async Task<User> CreateUserAsync(UserDto userDto)
@@ -83,40 +111,65 @@ namespace UserManagementAPI.Services
                 throw new ArgumentException("La lista de UserDto no puede ser nula o vacía.");
             }
 
-            List<User> users = [];
-
+            // Validar todos los DTOs antes de procesar
             foreach (UserDto userDto in userDtos)
             {
                 if (string.IsNullOrEmpty(userDto.Email) || string.IsNullOrEmpty(userDto.First) || string.IsNullOrEmpty(userDto.Last) || string.IsNullOrEmpty(userDto.Country) || string.IsNullOrEmpty(userDto.Company))
                 {
                     throw new ArgumentException("Email, First, Last, Country or Company cannot be null or empty.");
                 }
+            }
 
-                Country? country = await _context.Countries.FirstOrDefaultAsync(c => c.Name == userDto.Country);
-                
-                if (country == null)
+            // Extraer nombres únicos de países y empresas
+            HashSet<string> uniqueCountryNames = userDtos.Select(d => d.Country!).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> uniqueCompanyNames = userDtos.Select(d => d.Company!).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Consultar países y empresas existentes en una sola query cada uno
+            Dictionary<string, Country> existingCountries = await _context.Countries
+                .Where(c => uniqueCountryNames.Contains(c.Name))
+                .ToDictionaryAsync(c => c.Name, StringComparer.OrdinalIgnoreCase);
+
+            Dictionary<string, Company> existingCompanies = await _context.Companies
+                .Where(c => uniqueCompanyNames.Contains(c.Name))
+                .ToDictionaryAsync(c => c.Name, StringComparer.OrdinalIgnoreCase);
+
+            // Insertar países faltantes en batch
+            foreach (string countryName in uniqueCountryNames)
+            {
+                if (!existingCountries.ContainsKey(countryName))
                 {
-                    country = new Country { Name = userDto.Country };
-                    _context.Countries.Add(country);
-                    await _context.SaveChangesAsync();
+                    Country newCountry = new() { Name = countryName };
+                    _context.Countries.Add(newCountry);
+                    existingCountries[countryName] = newCountry;
                 }
+            }
 
-                Company? company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == userDto.Company);
-
-                if (company == null)
+            // Insertar empresas faltantes en batch
+            foreach (string companyName in uniqueCompanyNames)
+            {
+                if (!existingCompanies.ContainsKey(companyName))
                 {
-                    company = new Company { Name = userDto.Company };
-                    _context.Companies.Add(company);
-                    await _context.SaveChangesAsync();
+                    Company newCompany = new() { Name = companyName };
+                    _context.Companies.Add(newCompany);
+                    existingCompanies[companyName] = newCompany;
                 }
+            }
 
+            // Guardar países y empresas nuevos en un solo SaveChanges
+            await _context.SaveChangesAsync();
+
+            // Construir usuarios en memoria
+            List<User> users = new(userDtos.Count);
+
+            foreach (UserDto userDto in userDtos)
+            {
                 User user = new()
                 {
-                    Email = userDto.Email,
-                    First = userDto.First,
-                    Last = userDto.Last,
-                    CompanyId = company.Id,
-                    CountryId = country.Id
+                    Email = userDto.Email!,
+                    First = userDto.First!,
+                    Last = userDto.Last!,
+                    CompanyId = existingCompanies[userDto.Company!].Id,
+                    CountryId = existingCountries[userDto.Country!].Id
                 };
 
                 if (userDto.CreatedAt.HasValue)
@@ -127,8 +180,14 @@ namespace UserManagementAPI.Services
                 users.Add(user);
             }
 
-            _context.Users.AddRange(users);
-            await _context.SaveChangesAsync();
+            // Insertar usuarios en lotes para no saturar el Change Tracker
+            const int batchSize = 1000;
+            for (int i = 0; i < users.Count; i += batchSize)
+            {
+                List<User> batch = users.GetRange(i, Math.Min(batchSize, users.Count - i));
+                _context.Users.AddRange(batch);
+                await _context.SaveChangesAsync();
+            }
 
             return users;
         }
